@@ -236,7 +236,7 @@
 <script src="measure.js"></script>
 <script>
 'use strict';
-const VERSION = '1.1';
+const VERSION = '1.2';
 const M = window.LeafMeasure;
 const $ = (id) => document.getElementById(id);
 const R = M.BOARD.region;
@@ -361,7 +361,7 @@ function buildResult() {
   document.querySelectorAll('.pet').forEach(e => e.classList.toggle('hidden', !settings.petiole));
   $('rVar').textContent = cur.variety;
   const live = res.leaves.filter(l => !l.deleted).length;
-  $('rInfo').textContent = `${live} 片 · 每毫米 ${res.native.toFixed(1)} 像素`;
+  buildResultInfo();
   const notes = [];
   const present = new Set(res.leaves.map(l => l.no));
   const missing = []; for (let i = 1; i <= 30; i++) if (!present.has(i)) missing.push(i);
@@ -527,7 +527,7 @@ $('dFlip').addEventListener('click', () => {
 });
 $('dDel').addEventListener('click', () => { const l = selLeaf(); if (!l) return; l.deleted = !l.deleted; updateDetail(l); drawMain(); buildTable(); buildResultInfo(); });
 $('dClose').addEventListener('click', () => { selNo = null; $('detail').classList.add('hidden'); drawMain(); buildTable(); });
-function buildResultInfo() { const live = cur.res.leaves.filter(l => !l.deleted).length; $('rInfo').textContent = `${live} 片 · 每毫米 ${cur.res.native.toFixed(1)} 像素`; }
+function buildResultInfo() { const live = cur.res.leaves.filter(l => !l.deleted).length; $('rInfo').textContent = `${live} 片 · 每毫米 ${cur.res.native.toFixed(1)} 像素 · 校准 ${f2(settings.calH)}/${f2(settings.calV)} · v${VERSION}`; }
 
 function discardCurrent() { cur = null; selNo = null; cropCache.clear(); dispCanvas = null; }
 $('btnRetake').addEventListener('click', () => {
