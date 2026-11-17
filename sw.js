@@ -1,5 +1,5 @@
 // 离线缓存：首次联网打开后，所有文件存到手机里，之后断网也能用
-const CACHE = 'xf-leaf-v1.0';
+const CACHE = 'xf-leaf-v1.1';
 const FILES = ['./', 'index.html', 'measure.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
