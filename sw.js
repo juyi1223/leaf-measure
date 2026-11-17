@@ -1,5 +1,5 @@
 // 离线缓存：有网时总是先取最新版本（3 秒超时），没网时用手机里存的版本
-const CACHE = 'xf-leaf-v1.2';
+const CACHE = 'xf-leaf-v1.3';
 const FILES = ['./', 'index.html', 'measure.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));

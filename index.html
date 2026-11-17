@@ -236,13 +236,13 @@
 <script src="measure.js"></script>
 <script>
 'use strict';
-const VERSION = '1.2';
+const VERSION = '1.3';
 const M = window.LeafMeasure;
 const $ = (id) => document.getElementById(id);
 const R = M.BOARD.region;
 
 /* ---------- 设置 ---------- */
-const DEF = { calH: 95.65, calV: 95.65, frac: 30, calSet: true, petiole: false };
+const DEF = { calH: 96, calV: 96, frac: 30, calSet: true, petiole: false };
 function loadSettings() {
   try { return Object.assign({}, DEF, JSON.parse(localStorage.getItem('xf-settings') || '{}')); } catch (e) { return Object.assign({}, DEF); }
 }
