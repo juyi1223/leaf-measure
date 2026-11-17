@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>香榧叶片测量</title>
+<meta name="theme-color" content="#2f6b3a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="叶片测量">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root {
+    --bg: #f4f5f2; --card: #fff; --ink: #1d2420; --muted: #66706a; --line: #dde2dc;
+    --accent: #2f6b3a; --accent-ink: #fff; --warn: #b7791f; --warn-bg: #fff6e0; --bad: #b42318; --bad-bg: #fdecea;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 8px;
+    padding: calc(env(safe-area-inset-top) + 10px) 14px 10px; background: var(--accent); color: #fff; }
+  header h1 { flex: 1; margin: 0; font-size: 18px; font-weight: 600; }
+  header button { background: rgba(255,255,255,.16); color: #fff; border: 0; border-radius: 8px; padding: 7px 11px; font-size: 15px; }
+  main { max-width: 720px; margin: 0 auto; padding: 14px 14px calc(env(safe-area-inset-bottom) + 90px); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .card h2 { margin: 0 0 8px; font-size: 16px; }
+  label.field { display: block; margin-bottom: 12px; }
+  label.field span { display: block; font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+  input[type=text], input[type=number] { width: 100%; font-size: 20px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; padding: 10px 16px;
+    border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); font-size: 16px; font-weight: 500; cursor: pointer; text-align: center; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.danger { color: var(--bad); }
+  .btn.small { min-height: 38px; padding: 6px 12px; font-size: 14px; }
+  .btn:disabled { opacity: .45; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > .btn { flex: 1 1 0; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .note { font-size: 14px; border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
+  .note.warn { background: var(--warn-bg); color: #7a4b00; }
+  .note.bad { background: var(--bad-bg); color: var(--bad); }
+  .note.ok { background: #e8f3ea; color: #1e5129; }
+  ul.tips { margin: 6px 0 0; padding-left: 20px; font-size: 14px; color: var(--muted); }
+  .hidden { display: none !important; }
+  canvas { display: block; width: 100%; height: auto; border-radius: 8px; background: #eee; touch-action: manipulation; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 7px 4px; border-bottom: 1px solid var(--line); text-align: right; }
+  th:first-child, td:first-child { text-align: center; }
+  th:last-child, td:last-child { text-align: left; padding-left: 8px; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; white-space: nowrap; }
+  #detail { scroll-margin-top: 64px; }
+  tr.flag td { background: var(--warn-bg); }
+  tr.del td { color: #aaa; text-decoration: line-through; }
+  tr.sel td { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: rgba(255,255,255,.96); border-top: 1px solid var(--line);
+    padding: 10px 14px calc(env(safe-area-inset-bottom) + 10px); }
+  .bar .row { max-width: 720px; margin: 0 auto; }
+  .vals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
+  .vals div { background: var(--bg); border-radius: 8px; padding: 6px 8px; }
+  .vals b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
+  .vals small { color: var(--muted); font-size: 12px; }
+  input[type=range] { width: 100%; height: 36px; accent-color: var(--accent); }
+  .slider-row { display: flex; align-items: center; gap: 8px; }
+  .slider-row .btn { min-height: 40px; min-width: 44px; padding: 4px 10px; }
+  .rec { display: flex; align-items: center; gap: 10px; padding: 12px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .rec:last-child { border-bottom: 0; }
+  .rec b { font-size: 17px; }
+  .rec .grow { flex: 1; }
+  #busy { position: fixed; inset: 0; z-index: 20; background: rgba(20,30,24,.55); display: flex; align-items: center; justify-content: center; }
+  #busy div { background: #fff; border-radius: 14px; padding: 20px 26px; font-size: 16px; min-width: 200px; text-align: center; }
+  #toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 96px); transform: translateX(-50%); z-index: 30;
+    background: #1d2420; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 15px; max-width: 90vw; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 4px; border-radius: 2px; }
+  img.thumb { width: 100%; border-radius: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">香榧叶片测量</h1>
+  <button id="btnRecords">记录</button>
+  <button id="btnSettings" aria-label="设置">设置</button>
+</header>
+
+<main>
+  <!-- 首页 -->
+  <section id="vHome">
+    <div id="calWarn" class="note warn hidden">还没有输入打印校准值。请先点右上角「设置」，填入卡尺量出的两根校准条长度，否则结果可能有 1–2% 的系统误差。</div>
+    <div class="card">
+      <label class="field"><span>品种编号</span>
+        <input id="variety" type="text" placeholder="例如 T001" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      </label>
+      <div class="row">
+        <label class="btn primary">拍照<input id="inCam" type="file" accept="image/*" capture="environment" class="hidden"></label>
+        <label class="btn">从相册选<input id="inGal" type="file" accept="image/*" class="hidden"></label>
+      </div>
+      <p class="muted" id="countLine" style="margin:10px 0 0"></p>
+    </div>
+    <div class="card">
+      <h2>拍摄要点</h2>
+      <ul class="tips">
+        <li>叶子叶背朝下平放，每格一片，互相不要碰到</li>
+        <li>四个黑色方块必须全部拍进画面</li>
+        <li>用 1 倍主摄，有高像素（48/50MP）模式就打开，不要用变焦</li>
+        <li>手机尽量和底板平行，距离 25–30 cm，对焦清楚、拿稳</li>
+        <li>光线均匀，不开闪光灯，避免手机和手的影子落在叶子上</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 结果页 -->
+  <section id="vResult" class="hidden">
+    <div class="card">
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <h2 style="margin:0;flex:1">品种 <span id="rVar"></span></h2>
+        <span class="muted" id="rInfo"></span>
+      </div>
+      <div id="rNotes"></div>
+      <canvas id="cv"></canvas>
+      <div class="legend">
+        <span><i style="background:#18a0c8"></i>测量的长度</span>
+        <span class="pet"><i style="background:#9aa39c"></i>叶柄（不计入）</span>
+        <span class="pet"><i style="background:#e5322d"></i>叶柄切点</span>
+        <span><i style="background:#f08c00"></i>最大宽度</span>
+      </div>
+      <p class="muted" style="margin:6px 0 0">点图上的叶子或下面表格的一行，可以放大检查和修正。</p>
+    </div>
+    <div class="card hidden" id="detail">
+      <div style="display:flex;align-items:center;gap:8px">
+        <h2 style="margin:0;flex:1">第 <span id="dNo"></span> 片</h2>
+        <button class="btn small" id="dClose">收起</button>
+      </div>
+      <canvas id="dcv" style="margin-top:8px"></canvas>
+      <div class="vals">
+        <div><small>弯曲长度</small><b id="dCurved"></b></div>
+        <div><small>直线长度</small><b id="dStraight"></b></div>
+        <div><small>最大宽度</small><b id="dWidth"></b></div>
+      </div>
+      <div id="dFlags"></div>
+      <div class="pet">
+      <div class="muted" style="margin-top:6px">叶柄切点（<span id="dCutMode"></span>）：往右拖切掉更多</div>
+      <div class="slider-row">
+        <button class="btn" id="dCutL">◀</button>
+        <input type="range" id="dCut" min="0" max="100" step="1">
+        <button class="btn" id="dCutR">▶</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn small" id="dAuto">恢复自动切点</button>
+        <button class="btn small" id="dFlip">叶柄在右边（翻转）</button>
+      </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn small danger" id="dDel">删除这片</button>
+      </div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>号</th><th>弯曲长度<br>mm</th><th>直线长度<br>mm</th><th>最大宽度<br>mm</th><th>备注</th></tr></thead>
+        <tbody id="tb"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 记录 -->
+  <section id="vRecords" class="hidden">
+    <div class="card">
+      <h2>已保存 <span id="recCount"></span></h2>
+      <p class="muted" style="margin:0 0 10px">数据只保存在这台手机的这个应用里。建议每测完一批就导出一次备份。</p>
+      <div class="row">
+        <button class="btn primary" id="btnShare">导出 / 发送 CSV</button>
+        <button class="btn" id="btnDownload">下载 CSV</button>
+      </div>
+    </div>
+    <div class="card" id="recList"></div>
+    <div class="card">
+      <button class="btn danger" id="btnClearAll" style="width:100%">清空全部记录</button>
+    </div>
+  </section>
+
+  <!-- 单条记录 -->
+  <section id="vRecord" class="hidden">
+    <div class="card">
+      <h2 id="recTitle"></h2>
+      <p class="muted" id="recMeta" style="margin:0 0 8px"></p>
+      <img class="thumb" id="recImg" alt="测量标注图">
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>号</th><th>弯曲长度<br>mm</th><th>直线长度<br>mm</th><th>最大宽度<br>mm</th><th>备注</th></tr></thead>
+        <tbody id="recTb"></tbody>
+      </table>
+    </div>
+    <div class="row">
+      <button class="btn" id="recBack">返回列表</button>
+      <button class="btn danger" id="recDel">删除这条记录</button>
+    </div>
+  </section>
+
+  <!-- 设置 -->
+  <section id="vSettings" class="hidden">
+    <div class="card">
+      <h2>打印校准</h2>
+      <p class="muted" style="margin:0 0 10px">用卡尺量底板上的两根黑色校准条（标准都是 100.00 mm），把实测值填进来。换了一批打印的底板要重新量。</p>
+      <label class="field"><span>横向校准条实测（mm）</span><input id="sCalH" type="number" inputmode="decimal" step="0.01"></label>
+      <label class="field"><span>竖向校准条实测（mm）</span><input id="sCalV" type="number" inputmode="decimal" step="0.01"></label>
+    </div>
+    <div class="card">
+      <h2>叶柄</h2>
+      <label style="display:flex;align-items:center;gap:10px;font-size:16px;margin-bottom:8px"><input type="checkbox" id="sPet" style="width:22px;height:22px"> 叶子带叶柄（需要切掉叶柄再量长度）</label>
+      <p class="muted" style="margin:0 0 10px">不勾选：长度从叶基量到叶尖，不切任何部分。</p>
+      <div id="sFracBox">
+      <p class="muted" style="margin:0 0 10px">从叶柄一端开始，叶片宽度第一次达到「最大宽度 × 这个比例」的位置算作叶片起点，之前的部分当叶柄，不计入长度。</p>
+      <label class="field"><span>比例（%）</span><input id="sFrac" type="number" inputmode="numeric" step="1" min="5" max="80"></label>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn" id="sCancel">返回</button>
+      <button class="btn primary" id="sSave">保存设置</button>
+    </div>
+    <p class="muted" style="text-align:center;margin-top:16px">版本 <span id="ver"></span> · 全部计算在手机本地完成，不上传照片和数据</p>
+  </section>
+</main>
+
+<div class="bar hidden" id="resBar">
+  <div class="row">
+    <button class="btn" id="btnRetake">放弃重拍</button>
+    <button class="btn primary" id="btnSaveRes">保存本品种</button>
+  </div>
+</div>
+<div id="busy" class="hidden"><div id="busyMsg">处理中…</div></div>
+<div id="toast" class="hidden"></div>
+
+<script src="measure.js"></script>
+<script>
+'use strict';
+const VERSION = '1.0';
+const M = window.LeafMeasure;
+const $ = (id) => document.getElementById(id);
+const R = M.BOARD.region;
+
+/* ---------- 设置 ---------- */
+const DEF = { calH: 76, calV: 76, frac: 30, calSet: true, petiole: false };
+function loadSettings() {
+  try { return Object.assign({}, DEF, JSON.parse(localStorage.getItem('xf-settings') || '{}')); } catch (e) { return Object.assign({}, DEF); }
+}
+let settings = loadSettings();
+function saveSettings() { try { localStorage.setItem('xf-settings', JSON.stringify(settings)); } catch (e) {} }
+const measOpt = () => ({ sx: settings.calH / 100, sy: settings.calV / 100, frac: settings.petiole ? settings.frac / 100 : 0 });
+
+/* ---------- 数据库（IndexedDB） ---------- */
+let dbP = null;
+function db() {
+  if (!dbP) dbP = new Promise((res, rej) => {
+    const r = indexedDB.open('xiangfei-leaf', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('records', { keyPath: 'variety' });
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  return dbP;
+}
+async function dbDo(mode, fn) {
+  const d = await db();
+  return new Promise((res, rej) => {
+    const tx = d.transaction('records', mode), st = tx.objectStore('records');
+    const req = fn(st);
+    tx.oncomplete = () => res(req && req.result);
+    tx.onerror = () => rej(tx.error);
+  });
+}
+const dbGetAll = () => dbDo('readonly', s => s.getAll());
+const dbGet = (k) => dbDo('readonly', s => s.get(k));
+const dbPut = (v) => dbDo('readwrite', s => s.put(v));
+const dbDel = (k) => dbDo('readwrite', s => s.delete(k));
+const dbClear = () => dbDo('readwrite', s => s.clear());
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+/* ---------- 通用 ---------- */
+function show(view) {
+  for (const v of ['vHome', 'vResult', 'vRecords', 'vRecord', 'vSettings']) $(v).classList.toggle('hidden', v !== view);
+  $('resBar').classList.toggle('hidden', view !== 'vResult');
+  window.scrollTo(0, 0);
+}
+function busy(msg) { $('busy').classList.toggle('hidden', !msg); if (msg) $('busyMsg').textContent = msg; }
+let toastT = 0;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.remove('hidden'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.add('hidden'), 2600); }
+const f2 = (v) => (Math.round(v * 100) / 100).toFixed(2);
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function natCmp(a, b) { return String(a).localeCompare(String(b), 'zh-CN', { numeric: true }); }
+function nextVariety(v) {
+  const m = /^(.*?)(\d+)$/.exec(v);
+  if (!m) return v;
+  const n = String(parseInt(m[2], 10) + 1).padStart(m[2].length, '0');
+  return m[1] + n;
+}
+function fmtTime(iso) { const d = new Date(iso); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+async function refreshHome() {
+  $('calWarn').classList.toggle('hidden', !!settings.calSet);
+  try { const all = await dbGetAll(); $('countLine').textContent = all.length ? `已保存 ${all.length} 个品种。` : ''; } catch (e) {}
+}
+
+/* ---------- 读取照片 ---------- */
+function loadImageData(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = () => {
+      try {
+        let w = im.naturalWidth, h = im.naturalHeight;
+        const maxPx = 16.0e6; // iOS 画布上限约 16.7M 像素
+        const f = Math.min(1, Math.sqrt(maxPx / (w * h)));
+        w = Math.floor(w * f); h = Math.floor(h * f);
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const g = c.getContext('2d', { willReadFrequently: true });
+        g.drawImage(im, 0, 0, w, h);
+        const d = g.getImageData(0, 0, w, h);
+        c.width = c.height = 1;
+        URL.revokeObjectURL(url);
+        res({ data: d.data, width: w, height: h, scaled: f < 1 });
+      } catch (e) { rej(e); }
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('无法读取这张照片')); };
+    im.src = url;
+  });
+}
+
+/* ---------- 测量 ---------- */
+let cur = null;      // {variety, res, img, time}
+let selNo = null;
+let dispCanvas = null;
+
+async function onPhoto(file) {
+  const variety = $('variety').value.trim().toUpperCase();
+  if (!variety) { toast('请先填写品种编号'); $('variety').focus(); return; }
+  busy('读取照片…');
+  try {
+    const img = await loadImageData(file);
+    const res = await M.process(img, measOpt(), (m) => busy(m));
+    cur = { variety, res, img, time: new Date().toISOString() };
+    selNo = null;
+    buildResult();
+    show('vResult');
+  } catch (e) {
+    console.error(e);
+    alert('识别失败：' + (e && e.message ? e.message : e));
+  } finally { busy(null); }
+}
+for (const id of ['inCam', 'inGal']) {
+  $(id).addEventListener('change', (ev) => {
+    const f = ev.target.files && ev.target.files[0];
+    ev.target.value = '';
+    if (f) onPhoto(f);
+  });
+}
+
+function buildResult() {
+  const { res } = cur;
+  document.querySelectorAll('.pet').forEach(e => e.classList.toggle('hidden', !settings.petiole));
+  $('rVar').textContent = cur.variety;
+  const live = res.leaves.filter(l => !l.deleted).length;
+  $('rInfo').textContent = `${live} 片 · 每毫米 ${res.native.toFixed(1)} 像素`;
+  const notes = [];
+  const present = new Set(res.leaves.map(l => l.no));
+  const missing = []; for (let i = 1; i <= 30; i++) if (!present.has(i)) missing.push(i);
+  if (missing.length && missing.length < 30) notes.push(`<div class="note warn">这些格子没识别到叶子：${missing.join('、')}。如果格子里其实有叶子，请检查是否放偏、太浅或被挡住。</div>`);
+  if (missing.length === 30) notes.push(`<div class="note bad">没有识别到任何叶子。</div>`);
+  res.warnings.forEach(w => notes.push(`<div class="note warn">${esc(w)}</div>`));
+  const nFlag = res.leaves.filter(l => l.flags.length).length;
+  if (nFlag) notes.push(`<div class="note warn">有 ${nFlag} 片叶子带黄色提醒，建议点开看一下。</div>`);
+  $('rNotes').innerHTML = notes.join('');
+  // 底图
+  const d = res.disp;
+  dispCanvas = document.createElement('canvas'); dispCanvas.width = d.width; dispCanvas.height = d.height;
+  dispCanvas.getContext('2d').putImageData(new ImageData(d.data, d.width, d.height), 0, 0);
+  const cv = $('cv'); cv.width = d.width; cv.height = d.height;
+  drawMain();
+  buildTable();
+  $('detail').classList.add('hidden');
+}
+
+function leafPt(l, idx) {
+  const k = Math.max(0, Math.min(l.N - 2, Math.floor(idx))), f = Math.max(0, Math.min(1, idx - k));
+  return [l.ptsNom[2 * k] + f * (l.ptsNom[2 * k + 2] - l.ptsNom[2 * k]), l.ptsNom[2 * k + 1] + f * (l.ptsNom[2 * k + 3] - l.ptsNom[2 * k + 1])];
+}
+function leafEdge(l, idx) {
+  const k = Math.max(0, Math.min(l.N - 2, Math.floor(idx))), f = Math.max(0, Math.min(1, idx - k)), e = l.edgeNom;
+  const L = (a) => e[4 * k + a] + f * (e[4 * (k + 1) + a] - e[4 * k + a]);
+  return [[L(0), L(1)], [L(2), L(3)]];
+}
+// 在 2D 画布上画叶片标注；tf 把 mm 转成画布像素
+function drawLeafOverlay(g, l, tf, scale, detail) {
+  const lw = Math.max(1.5, scale * 0.12);
+  const line = (pts, color, w, dash) => {
+    g.beginPath(); g.strokeStyle = color; g.lineWidth = w; g.setLineDash(dash || []);
+    pts.forEach((p, i) => { const [x, y] = tf(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+    g.stroke(); g.setLineDash([]);
+  };
+  const cut = l.cutIdx;
+  const step = detail ? 1 : 3;
+  if (detail) {
+    const a = [], b = [];
+    for (let k = 0; k < l.N; k += step) { a.push([l.edgeNom[4 * k], l.edgeNom[4 * k + 1]]); b.push([l.edgeNom[4 * k + 2], l.edgeNom[4 * k + 3]]); }
+    line(a, 'rgba(255,215,0,.85)', 1); line(b, 'rgba(255,215,0,.85)', 1);
+  }
+  const pet = [], blade = [];
+  for (let k = 0; k <= Math.floor(cut); k += step) pet.push(leafPt(l, k));
+  pet.push(leafPt(l, cut));
+  blade.push(leafPt(l, cut));
+  for (let k = Math.ceil(cut); k < l.N; k += step) blade.push(leafPt(l, k));
+  blade.push(leafPt(l, l.N - 1));
+  if (pet.length > 1) line(pet, '#9aa39c', lw, [lw * 2, lw * 1.5]);
+  line(blade, '#18a0c8', lw);
+  const ce = leafEdge(l, cut);
+  line(ce, '#e5322d', lw * 1.4);
+  const we = leafEdge(l, l.maxIdx);
+  line(we, '#f08c00', lw * 1.2);
+}
+
+function drawMain() {
+  const cv = $('cv'), g = cv.getContext('2d'), Sd = cur.res.disp.S;
+  g.drawImage(dispCanvas, 0, 0);
+  const tf = (x, y) => [(x - R.x0) * Sd, (y - R.y0) * Sd];
+  for (const l of cur.res.leaves) {
+    if (!l.deleted) drawLeafOverlay(g, l, tf, Sd, false);
+    const [bx, by] = tf(...leafPt(l, 0));
+    const x = Math.max(12, bx - 2.2 * Sd), y = by;
+    g.beginPath(); g.arc(x, y, 11, 0, Math.PI * 2);
+    g.fillStyle = l.deleted ? '#888' : l.flags.length ? '#f2b705' : '#2f6b3a'; g.fill();
+    if (l.no === selNo) { g.lineWidth = 3; g.strokeStyle = '#e5322d'; g.stroke(); }
+    g.fillStyle = l.flags.length && !l.deleted ? '#000' : '#fff'; g.font = 'bold 13px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(String(l.no), x, y + 0.5);
+    if (l.deleted) {
+      const [ex, ey] = tf(...leafPt(l, l.N - 1));
+      g.strokeStyle = '#e5322d'; g.lineWidth = 2; g.beginPath(); g.moveTo(bx, by - 8); g.lineTo(ex, ey + 8); g.moveTo(bx, by + 8); g.lineTo(ex, ey - 8); g.stroke();
+    }
+  }
+}
+
+function noteText(l) {
+  const a = l.flags.slice();
+  if (l.cutMode === 'manual') a.push('手动切点');
+  if (l.reversed) a.push('已翻转');
+  if (l.deleted) a.unshift('已删除');
+  return a.join('；');
+}
+function buildTable() {
+  $('tb').innerHTML = cur.res.leaves.map(l => `<tr data-no="${l.no}" class="${l.deleted ? 'del' : l.flags.length ? 'flag' : ''}${l.no === selNo ? ' sel' : ''}">
+    <td>${l.no}</td><td>${f2(l.curved)}</td><td>${f2(l.straight)}</td><td>${f2(l.width)}</td><td>${esc(noteText(l))}</td></tr>`).join('');
+}
+$('tb').addEventListener('click', (e) => { const tr = e.target.closest('tr'); if (tr) select(+tr.dataset.no, true); });
+$('cv').addEventListener('click', (e) => {
+  const cv = $('cv'), rc = cv.getBoundingClientRect();
+  const px = (e.clientX - rc.left) * cv.width / rc.width, py = (e.clientY - rc.top) * cv.height / rc.height;
+  const Sd = cur.res.disp.S, x = R.x0 + px / Sd, y = R.y0 + py / Sd;
+  let best = null, bd = 6;
+  for (const l of cur.res.leaves) {
+    for (let k = 0; k < l.N; k += 4) { const d = Math.hypot(l.ptsNom[2 * k] - x, l.ptsNom[2 * k + 1] - y); if (d < bd) { bd = d; best = l; } }
+    const bx = l.ptsNom[0] - 2.2, by = l.ptsNom[1];
+    const d2 = Math.hypot(bx - x, by - y); if (d2 < bd) { bd = d2; best = l; }
+  }
+  if (best) select(best.no, true);
+});
+
+const cropCache = new Map();
+function select(no, scroll) {
+  selNo = no;
+  const l = cur.res.leaves.find(v => v.no === no);
+  if (!l) return;
+  $('detail').classList.remove('hidden');
+  $('dNo').textContent = no;
+  const s = $('dCut');
+  s.max = Math.max(1, l.maxIdx);
+  updateDetail(l);
+  drawMain(); buildTable();
+  if (scroll) $('detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function updateDetail(l) {
+  $('dCurved').textContent = f2(l.curved);
+  $('dStraight').textContent = f2(l.straight);
+  $('dWidth').textContent = f2(l.width);
+  $('dCutMode').textContent = l.cutMode === 'manual' ? '手动' : '自动';
+  $('dCut').max = Math.max(1, l.maxIdx);
+  $('dCut').value = l.cutIdx;
+  $('dDel').textContent = l.deleted ? '恢复这片' : '删除这片';
+  $('dFlags').innerHTML = l.flags.map(f => `<div class="note warn">${esc(f)}</div>`).join('');
+  drawDetail(l);
+}
+function drawDetail(l) {
+  const key = l.no;
+  let c = cropCache.get(key);
+  const pad = 1.5;
+  if (!c) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (let k = 0; k < l.N; k++) for (let a = 0; a < 2; a++) {
+      const x = l.edgeNom[4 * k + 2 * a], y = l.edgeNom[4 * k + 2 * a + 1];
+      x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+    }
+    x0 -= pad + 1.5; y0 -= pad; x1 += pad; y1 += pad;
+    // 保证高度够看
+    const minH = (x1 - x0) / 4; if (y1 - y0 < minH) { const m = (y0 + y1) / 2; y0 = m - minH / 2; y1 = m + minH / 2; }
+    const Sc = Math.max(10, Math.min(28, cur.res.native * 1.2));
+    const reg = M.renderRegion(cur.img, cur.res.H, x0, y0, x1, y1, Sc);
+    const base = document.createElement('canvas'); base.width = reg.width; base.height = reg.height;
+    base.getContext('2d').putImageData(new ImageData(reg.data, reg.width, reg.height), 0, 0);
+    c = { base, x0, y0, Sc };
+    cropCache.set(key, c);
+  }
+  const cv = $('dcv'); cv.width = c.base.width; cv.height = c.base.height;
+  const g = cv.getContext('2d');
+  g.drawImage(c.base, 0, 0);
+  if (!l.deleted) drawLeafOverlay(g, l, (x, y) => [(x - c.x0) * c.Sc, (y - c.y0) * c.Sc], c.Sc, true);
+}
+function recalc(l) { M.compute(l, measOpt()); updateDetail(l); drawMain(); buildTable(); }
+const selLeaf = () => cur && cur.res.leaves.find(v => v.no === selNo);
+$('dCut').addEventListener('input', () => { const l = selLeaf(); if (!l) return; l.cutMode = 'manual'; l.cutIdx = +$('dCut').value; recalc(l); });
+$('dCutL').addEventListener('click', () => { const l = selLeaf(); if (!l) return; l.cutMode = 'manual'; l.cutIdx = Math.max(0, Math.round(l.cutIdx) - 1); recalc(l); });
+$('dCutR').addEventListener('click', () => { const l = selLeaf(); if (!l) return; l.cutMode = 'manual'; l.cutIdx = Math.min(l.maxIdx, Math.round(l.cutIdx) + 1); recalc(l); });
+$('dAuto').addEventListener('click', () => { const l = selLeaf(); if (!l) return; l.cutMode = 'auto'; recalc(l); });
+$('dFlip').addEventListener('click', () => {
+  const l = selLeaf(); if (!l) return;
+  M.reverseLeaf(l);
+  l.flags = l.flags.filter(f => f !== '叶柄方向可疑');
+  recalc(l);
+});
+$('dDel').addEventListener('click', () => { const l = selLeaf(); if (!l) return; l.deleted = !l.deleted; updateDetail(l); drawMain(); buildTable(); buildResultInfo(); });
+$('dClose').addEventListener('click', () => { selNo = null; $('detail').classList.add('hidden'); drawMain(); buildTable(); });
+function buildResultInfo() { const live = cur.res.leaves.filter(l => !l.deleted).length; $('rInfo').textContent = `${live} 片 · 每毫米 ${cur.res.native.toFixed(1)} 像素`; }
+
+function discardCurrent() { cur = null; selNo = null; cropCache.clear(); dispCanvas = null; }
+$('btnRetake').addEventListener('click', () => {
+  if (!confirm('放弃这次的测量结果？')) return;
+  discardCurrent(); show('vHome'); refreshHome();
+});
+$('btnSaveRes').addEventListener('click', async () => {
+  if (!cur) return;
+  const leaves = cur.res.leaves.filter(l => !l.deleted);
+  if (!leaves.length) { toast('没有可保存的叶片'); return; }
+  try {
+    const old = await dbGet(cur.variety);
+    if (old && !confirm(`品种 ${cur.variety} 已经保存过（${old.leaves.length} 片，${fmtTime(old.time)}）。要用这次的结果覆盖吗？`)) return;
+    busy('保存中…');
+    const keepSel = selNo; selNo = null; drawMain(); selNo = keepSel;
+    const blob = await new Promise(r => $('cv').toBlob(r, 'image/jpeg', 0.82));
+    const opt = measOpt();
+    await dbPut({
+      variety: cur.variety, time: cur.time, calib: opt, version: VERSION,
+      leaves: leaves.map(l => ({ no: l.no, curved: +f2(l.curved), straight: +f2(l.straight), width: +f2(l.width),
+        cut: l.cutMode === 'manual' ? '手动' : '自动', flipped: l.reversed, flags: l.flags.slice() })),
+      thumb: blob,
+    });
+    const v = cur.variety;
+    discardCurrent();
+    $('variety').value = nextVariety(v);
+    show('vHome'); refreshHome();
+    toast(`已保存 ${v}（${leaves.length} 片）`);
+  } catch (e) { alert('保存失败：' + e.message); }
+  finally { busy(null); }
+});
+
+/* ---------- 记录 ---------- */
+async function openRecords() {
+  if (cur && !confirm('当前的测量结果还没保存，离开会丢失。确定离开吗？')) return;
+  if (cur) discardCurrent();
+  const all = (await dbGetAll()).sort((a, b) => natCmp(a.variety, b.variety));
+  $('recCount').textContent = `（${all.length} 个品种，${all.reduce((s, r) => s + r.leaves.length, 0)} 片叶子）`;
+  $('recList').innerHTML = all.length ? all.map(r => `<div class="rec" data-v="${esc(r.variety)}">
+      <div class="grow"><b>${esc(r.variety)}</b><div class="muted">${r.leaves.length} 片 · ${fmtTime(r.time)}</div></div><span class="muted">›</span></div>`).join('')
+    : '<p class="muted" style="margin:0">还没有保存的记录。</p>';
+  show('vRecords');
+}
+$('recList').addEventListener('click', async (e) => {
+  const it = e.target.closest('.rec'); if (!it) return;
+  const r = await dbGet(it.dataset.v); if (!r) return;
+  $('recTitle').textContent = '品种 ' + r.variety;
+  $('recMeta').textContent = `${r.leaves.length} 片 · ${fmtTime(r.time)} · 校准 ${f2(r.calib.sx * 100)}/${f2(r.calib.sy * 100)} mm`;
+  const img = $('recImg');
+  if (img.dataset.url) URL.revokeObjectURL(img.dataset.url);
+  if (r.thumb) { const u = URL.createObjectURL(r.thumb); img.src = u; img.dataset.url = u; img.classList.remove('hidden'); } else img.classList.add('hidden');
+  $('recTb').innerHTML = r.leaves.map(l => `<tr class="${l.flags.length ? 'flag' : ''}"><td>${l.no}</td><td>${f2(l.curved)}</td><td>${f2(l.straight)}</td><td>${f2(l.width)}</td><td>${esc(recNote(l))}</td></tr>`).join('');
+  $('recDel').dataset.v = r.variety;
+  show('vRecord');
+});
+function recNote(l) { const a = l.flags.slice(); if (l.cut === '手动') a.push('手动切点'); if (l.flipped) a.push('已翻转'); return a.join('；'); }
+$('recBack').addEventListener('click', openRecords);
+$('recDel').addEventListener('click', async () => {
+  const v = $('recDel').dataset.v;
+  if (!confirm(`删除品种 ${v} 的记录？删除后无法恢复。`)) return;
+  await dbDel(v); toast('已删除 ' + v); openRecords();
+});
+$('btnClearAll').addEventListener('click', async () => {
+  const all = await dbGetAll();
+  if (!all.length) { toast('没有记录'); return; }
+  if (!confirm(`清空全部 ${all.length} 个品种的记录？无法恢复。建议先导出备份。`)) return;
+  if (!confirm('再确认一次：真的全部清空吗？')) return;
+  await dbClear(); toast('已清空'); openRecords();
+});
+
+async function makeCSV() {
+  const all = (await dbGetAll()).sort((a, b) => natCmp(a.variety, b.variety));
+  const q = (s) => /[",\n]/.test(s) ? '"' + String(s).replace(/"/g, '""') + '"' : s;
+  const lines = ['品种,叶片号,弯曲长度_mm,直线长度_mm,最大宽度_mm,备注,测量时间'];
+  for (const r of all) for (const l of r.leaves.slice().sort((a, b) => a.no - b.no))
+    lines.push([q(r.variety), l.no, f2(l.curved), f2(l.straight), f2(l.width), q(recNote(l)), fmtTime(r.time)].join(','));
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  const name = `香榧叶片数据_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}.csv`;
+  return { name, text: '﻿' + lines.join('\r\n') + '\r\n', n: all.length };
+}
+$('btnShare').addEventListener('click', async () => {
+  const c = await makeCSV(); if (!c.n) { toast('没有记录可导出'); return; }
+  const file = new File([c.text], c.name, { type: 'text/csv' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: c.name }); return; }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  download(c);
+});
+$('btnDownload').addEventListener('click', async () => { const c = await makeCSV(); if (!c.n) { toast('没有记录可导出'); return; } download(c); });
+function download(c) {
+  const url = URL.createObjectURL(new Blob([c.text], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a'); a.href = url; a.download = c.name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  toast('已导出 ' + c.name);
+}
+
+/* ---------- 设置页 ---------- */
+function openSettings() {
+  if (cur) { toast('请先保存或放弃当前结果'); return; }
+  $('sCalH').value = f2(settings.calH); $('sCalV').value = f2(settings.calV); $('sFrac').value = settings.frac;
+  $('sPet').checked = !!settings.petiole; $('sFracBox').classList.toggle('hidden', !settings.petiole);
+  show('vSettings');
+}
+$('sSave').addEventListener('click', () => {
+  const h = parseFloat($('sCalH').value), v = parseFloat($('sCalV').value), fr = parseFloat($('sFrac').value);
+  if (!(h > 50 && h < 110) || !(v > 50 && v < 110)) { alert('校准值应该在 50–110 mm 之间，请检查输入。'); return; }
+  if (Math.abs(h - 100) > 2 || Math.abs(v - 100) > 2) {
+    if (!confirm(`底板打印时被缩放了（约 ${(h).toFixed(0)}% / ${(v).toFixed(0)}%）。工具可以照常使用，只要这两个数是用卡尺精确量的。确定保存吗？`)) return;
+  }
+  if (Math.abs(h - v) > 2 && !confirm('横向和竖向差得比较多，打印可能变形了。确定数值没量错吗？')) return;
+  if (!(fr >= 5 && fr <= 80)) { alert('叶柄判定比例应在 5–80 之间。'); return; }
+  settings.calH = h; settings.calV = v; settings.frac = fr; settings.calSet = true; settings.petiole = $('sPet').checked;
+  saveSettings(); toast('设置已保存'); show('vHome'); refreshHome();
+});
+$('sPet').addEventListener('change', () => $('sFracBox').classList.toggle('hidden', !$('sPet').checked));
+$('sCancel').addEventListener('click', () => { show('vHome'); refreshHome(); });
+$('btnSettings').addEventListener('click', openSettings);
+$('btnRecords').addEventListener('click', openRecords);
+$('title').addEventListener('click', () => { if (!cur) { show('vHome'); refreshHome(); } });
+$('ver').textContent = VERSION;
+window.addEventListener('beforeunload', (e) => { if (cur) { e.preventDefault(); e.returnValue = ''; } });
+
+refreshHome();
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
